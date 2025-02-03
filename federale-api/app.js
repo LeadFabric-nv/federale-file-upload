@@ -19,18 +19,17 @@ if (process.env.NODE_ENV !== 'development') {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// // Static file serving for development
-// if (process.env.NODE_ENV === 'development') {
-//     // Get the current file's directory
-//     const __filename = fileURLToPath(import.meta.url);
-//     const __dirname = path.dirname(__filename);
+// Static file serving for development
+if (process.env.NODE_ENV === 'development') {
+    // Get the current file's directory
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
     
-//     // Serve static files from project root (2 levels up from current directory)
-//     const staticPath = path.join(__dirname, '..');
-//     app.use(express.static(staticPath));
+    const staticPath = path.join(__dirname, '../public/');
+    app.use(express.static(staticPath));
     
-//     console.log('Serving static files from:', staticPath);
-// }
+    console.log('Serving static files from:', staticPath);
+}
 
 // Routes
 app.use('/api', uploadRoutes);
@@ -39,16 +38,6 @@ app.use('/api', uploadRoutes);
 app.get('/', (req, res) => {
     res.json({ status: 'Server is running' });
 });
-
-// Catch-all route to serve index.html in development
-if (process.env.NODE_ENV === 'development') {
-    app.get('*', (req, res) => {
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        const indexPath = path.join(__dirname, '..', 'index.html');
-        res.sendFile(indexPath);
-    });
-}
 
 // 404 handler
 app.use((req, res) => {
