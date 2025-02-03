@@ -4,7 +4,6 @@ const ALLOWED_TYPES = ['.png', '.pdf', '.jpeg', '.jpg'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const API_URL = 'http://localhost:3000';
 
-
 // Initialize when Marketo form is ready
 MktoForms2.whenReady(function (form) {
     //Find the file upload fieldset
@@ -72,19 +71,38 @@ MktoForms2.whenReady(function (form) {
         elements.fileInput.value = '';
     });
 
+    // Check form validation
+    form.onValidate(function(isValid) {
+        console.log("Form validation status:", isValid);
+        if (!isValid) {
+            console.log("Invalid fields:", form.getInvalidFields());
+        }
+    });
+
    // Handle form submission
     form.onSubmit(function() {
         console.log("Form onSubmit triggered");
+
+        // Set the upload datetime
+        const now = new Date().toISOString();
+        form.setValues({
+            'fVuploaddate': now
+        });
         
         // If no files, let form submit normally
         if (selectedFiles.length === 0) {
             console.log("no files, returning true");
-            
             return true;
         }
 
+        // Get email from form
+        const email = form.getValues().Email;
+
+        console.log(email);
+        console.log(form.getValues().fVuploaddate);
+
         // Return the promise for file upload case
-        return uploadFilesToBackend(selectedFiles)
+        return uploadFilesToBackend(selectedFiles, email)
             .then(response => {
                 console.log("File upload response:", response);
                 
@@ -113,6 +131,13 @@ MktoForms2.whenReady(function (form) {
                 return true;
             });
     });
+
+    // Add success handler to prevent redirect
+    form.onSuccess(function(values, followUpUrl) {
+        console.log("Form submitted successfully to Marketo");
+        return false; // Prevent the redirect
+    });
+
 });
 
 
@@ -126,13 +151,16 @@ function formatFileName(fileName) {
     return name + ext;
 }
 
-async function uploadFilesToBackend(files) {
+async function uploadFilesToBackend(files, email) {
     try {
         const formData = new FormData();
         files.forEach(file => {
             formData.append('files', file.originalFile);
             formData.append('names', file.formattedName);
         });
+
+        // Add email to form data
+        formData.append('email', email);
 
         const response = await fetch(`${API_URL}/api/upload`, { 
             method: 'POST', //GET

@@ -3,9 +3,13 @@ import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequestQueue } from './modules/requestQueue.js';
 import uploadRoutes from './routes/upload.js';
 
 const app = express();
+
+// Create request queue with 3 concurrent requests
+const queue = createRequestQueue(3);
 
 if (process.env.NODE_ENV !== 'development') {
     // Middleware
@@ -18,6 +22,11 @@ if (process.env.NODE_ENV !== 'development') {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Implement request queue middleware
+app.use((req, res, next) => {
+    queue.enqueue(req, res, next).catch(next);
+});
 
 // Static file serving for development
 if (process.env.NODE_ENV === 'development') {

@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
-import { getMarketoToken } from '../utils/marketo.js';
+import { getMarketoToken } from '../utils/marketoToken.js';
+import { updateLeadField } from '../utils/marketoLead.js';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 
@@ -82,12 +83,14 @@ router.get('/test-token', async (req, res) => {
 
 // File upload endpoint
 router.post('/upload', upload.array('files'), async (req, res) => {
-    console.log('🚀 Upload Endpoint Hit');
+    console.log('Upload Endpoint Hit');
     console.log('Files Received:', req.files.map(file => ({
         originalname: file.originalname,
         mimetype: file.mimetype,
         size: file.size
     })));
+
+    console.log('Email:', req.body.email);
 
     try {
         // Check if files were provided
@@ -108,6 +111,27 @@ router.post('/upload', upload.array('files'), async (req, res) => {
         const uploadResults = await uploadFilesToMarketo(tokenResponse, req.files);
 
         console.log('Marketo Upload Results:', JSON.stringify(uploadResults, null, 2));
+
+        // If files were uploaded successfully, update the lead field
+        if (uploadResults.every(result => result.success)) {
+            // Create a comma-separated list of file names
+            const fileNames = uploadResults
+                .map(result => result.originalName)
+                .join(', ');
+
+            // Update the lead's field with the file names
+            const updateResult = await updateLeadField(
+                req.body.email,
+                fileNames,
+                tokenResponse.data.access_token
+            );
+
+            console.log('Lead Update Result:', updateResult);
+
+            if (!updateResult.success) {
+                console.error('Failed to update lead field:', updateResult.error);
+            }
+        }
 
         // Determine overall success
         const allSucceeded = uploadResults.every(result => result.success);
