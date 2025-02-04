@@ -114,7 +114,6 @@ router.post('/upload', upload.array('files'), async (req, res) => {
 
         // If files were uploaded successfully, update the lead field
         if (uploadResults.every(result => result.success)) {
-            // Create a comma-separated list of file names
             const fileNames = uploadResults
                 .map(result => result.originalName)
                 .join(', ');
@@ -133,10 +132,8 @@ router.post('/upload', upload.array('files'), async (req, res) => {
             }
         }
 
-        // Determine overall success
         const allSucceeded = uploadResults.every(result => result.success);
 
-        // For now, just acknowledge receipt
         res.json({
             success: allSucceeded,
             message: allSucceeded 

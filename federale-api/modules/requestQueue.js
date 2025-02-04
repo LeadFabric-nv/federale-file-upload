@@ -24,7 +24,6 @@ const createRequestQueue = (concurrency = 3) => {
         const { req, res, next } = queue.shift();
         running++;
 
-        // Instead of handling the request here, pass control to the next middleware
         next();
         running--;
         processNext();

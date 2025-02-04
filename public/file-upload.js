@@ -163,7 +163,7 @@ async function uploadFilesToBackend(files, email) {
         formData.append('email', email);
 
         const response = await fetch(`${API_URL}/api/upload`, { 
-            method: 'POST', //GET
+            method: 'POST', 
             body: formData
         });
 

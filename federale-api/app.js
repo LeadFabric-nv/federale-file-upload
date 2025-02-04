@@ -28,7 +28,7 @@ app.use((req, res, next) => {
     queue.enqueue(req, res, next).catch(next);
 });
 
-// Static file serving for development
+// Static file serving for local development - TO REMOVE
 if (process.env.NODE_ENV === 'development') {
     // Get the current file's directory
     const __filename = fileURLToPath(import.meta.url);
