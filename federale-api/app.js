@@ -29,16 +29,16 @@ app.use((req, res, next) => {
 });
 
 // Static file serving for local development - TO REMOVE
-if (process.env.NODE_ENV === 'development') {
-    // Get the current file's directory
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
+// if (process.env.NODE_ENV === 'development') {
+//     // Get the current file's directory
+//     const __filename = fileURLToPath(import.meta.url);
+//     const __dirname = path.dirname(__filename);
     
-    const staticPath = path.join(__dirname, '../public/');
-    app.use(express.static(staticPath));
+//     const staticPath = path.join(__dirname, '../public/');
+//     app.use(express.static(staticPath));
     
-    console.log('Serving static files from:', staticPath);
-}
+//     console.log('Serving static files from:', staticPath);
+// }
 
 // Routes
 app.use('/api', uploadRoutes);

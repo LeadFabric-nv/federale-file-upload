@@ -2,7 +2,7 @@
 let selectedFiles = [];
 const ALLOWED_TYPES = ['.png', '.pdf', '.jpeg', '.jpg'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://federale-file-upload.lf-apps.com'; //Testing: http://localhost:3000
 
 // Initialize when Marketo form is ready
 MktoForms2.whenReady(function (form) {
