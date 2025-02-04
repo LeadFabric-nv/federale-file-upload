@@ -127,7 +127,6 @@ MktoForms2.whenReady(function (form) {
             })
             .catch(error => {
                 console.error('Upload process error:', error);
-                // Handle error case
                 return true;
             });
     });
