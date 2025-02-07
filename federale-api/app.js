@@ -11,13 +11,18 @@ const app = express();
 // Create request queue with 3 concurrent requests
 const queue = createRequestQueue(3);
 
-if (process.env.NODE_ENV !== 'development') {
-    // Middleware
-    app.use(helmet());
+if (process.env.NODE_ENV === 'development') {
+    app.use(cors());
+} else {
     app.use(cors({
-        origin: true,
+        origin: 'https://www.federale.be',
+        methods: ['POST', 'GET', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true
     }));
+    
+    // Enable helmet in production
+    app.use(helmet());
 }
 
 app.use(express.json());
