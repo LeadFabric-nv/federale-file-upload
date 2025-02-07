@@ -1,75 +1,40 @@
 // Keep track of selected files
 let selectedFiles = [];
+let fileUploadInitialized = false;
 const ALLOWED_TYPES = ['.png', '.pdf', '.jpeg', '.jpg'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const API_URL = 'https://federale-file-upload.lf-apps.com'; //Testing: http://localhost:3000
 
 // Initialize when Marketo form is ready
 MktoForms2.whenReady(function (form) {
-    //Find the file upload fieldset
-    const fileFieldset = Array.from(form.getFormElem().get(0).getElementsByTagName('fieldset'))
-        .find(fieldset => fieldset.textContent.toLowerCase().includes('file upload'));
+    console.log('Form ready, setting up observer');
 
-    if (!fileFieldset) {
-        console.error('File upload fieldset not found');
-        return;
-    }
-
-    //Create and inject upload interface
-    const elements = createUploadInterface();
-    fileFieldset.appendChild(elements.container);
-
-    // Handle file selection
-    elements.uploadButton.addEventListener('click', () => {
-        elements.fileInput.click();
-    });
-
-    elements.fileInput.addEventListener('change', (event) => {
-        const newFiles = Array.from(event.target.files);
-
-        // Check if adding new files would exceed the limit
-        if (selectedFiles.length + newFiles.length > 3) {
-            elements.errorContainer.textContent = 'Maximum 3 files allowed';
-            elements.fileInput.value = '';
-            return;
-        }
-
-        // File type validation
-        const invalidFiles = newFiles.filter(file => {
-            const extension = '.' + file.name.split('.').pop().toLowerCase();
-            return !ALLOWED_TYPES.includes(extension);
+    // Create an observer instance
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            // Look for added nodes
+            mutation.addedNodes.forEach(node => {
+                // Check if it's an element node and a fieldset
+                if (node.nodeType === 1 && node.nodeName === 'FIELDSET') {
+                    // Check if this is our target fieldset
+                    if (node.textContent.toLowerCase().includes('file upload')) {
+                        console.log('File upload fieldset added to DOM');
+                        initializeFileUpload(form, node);
+                        fileUploadInitialized = true;  // Set flag when initialized
+                    }
+                }
+            });
         });
-    
-        if (invalidFiles.length > 0) {
-            elements.errorContainer.textContent = `Invalid file type(s). Allowed types: ${ALLOWED_TYPES.join(', ')}`;
-            elements.fileInput.value = '';
-            return;
-        }
-
-        // File size validation
-        const oversizedFiles = newFiles.filter(file => file.size > MAX_FILE_SIZE);
-        
-        if (oversizedFiles.length > 0) {
-            elements.errorContainer.textContent = `File(s) too large. Maximum size allowed is 10MB per file`;
-            elements.fileInput.value = '';
-            return;
-        }
-
-        // Add new files to our selection
-        selectedFiles = [...selectedFiles, ...newFiles.map(file => ({
-            originalFile: file,
-            formattedName: formatFileName(file.name)
-        }))];
-
-        // Clear any previous error messages
-        elements.errorContainer.textContent = '';
-
-        // Update the display
-        updateFileList(elements.fileList, elements);
-
-        // Reset file input so the same file can be selected again if needed
-        elements.fileInput.value = '';
     });
+
+    // Configure the observer to only watch for added nodes
+    const config = {
+        childList: true,
+        subtree: true
+    };
+
+    // Start observing the form
+    observer.observe(form.getFormElem().get(0), config);
 
     // Check form validation
     form.onValidate(function(isValid) {
@@ -82,6 +47,11 @@ MktoForms2.whenReady(function (form) {
    // Handle form submission
     form.onSubmit(function() {
         console.log("Form onSubmit triggered");
+
+        if (!fileUploadInitialized) {
+            console.log("File upload not initialized, submitting form normally");
+            return true;
+        }
 
         // Set the upload datetime
         const now = new Date().toISOString();
@@ -139,15 +109,69 @@ MktoForms2.whenReady(function (form) {
 
 });
 
+function initializeFileUpload(form, fieldset) {
+    // Check if we've already initialized on this fieldset
+    if (fieldset.querySelector('.file-upload-container')) {
+        return;
+    }
 
-function formatFileName(fileName) {
-    // Get file extension
-    const ext = fileName.slice(fileName.lastIndexOf('.'));
-    // Get name without extension, remove special chars and spaces
-    const name = fileName.slice(0, fileName.lastIndexOf('.'))
-        .replace(/[^a-zA-Z0-9]/g, '_')  // Replace special chars with underscore
-        .toLowerCase();
-    return name + ext;
+    console.log('Initializing file upload interface');
+    
+    // Create and append upload interface
+    const elements = createUploadInterface();
+    fieldset.appendChild(elements.container);
+
+    // Handle file selection
+    elements.uploadButton.addEventListener('click', () => {
+        elements.fileInput.click();
+    });
+
+    elements.fileInput.addEventListener('change', (event) => {
+        const newFiles = Array.from(event.target.files);
+
+        // Check if adding new files would exceed the limit
+        if (selectedFiles.length + newFiles.length > 3) {
+            elements.errorContainer.textContent = 'Maximum 3 files allowed';
+            elements.fileInput.value = '';
+            return;
+        }
+
+        // File type validation
+        const invalidFiles = newFiles.filter(file => {
+            const extension = '.' + file.name.split('.').pop().toLowerCase();
+            return !ALLOWED_TYPES.includes(extension);
+        });
+    
+        if (invalidFiles.length > 0) {
+            elements.errorContainer.textContent = `Invalid file type(s). Allowed types: ${ALLOWED_TYPES.join(', ')}`;
+            elements.fileInput.value = '';
+            return;
+        }
+
+        // File size validation
+        const oversizedFiles = newFiles.filter(file => file.size > MAX_FILE_SIZE);
+        
+        if (oversizedFiles.length > 0) {
+            elements.errorContainer.textContent = `File(s) too large. Maximum size allowed is 10MB per file`;
+            elements.fileInput.value = '';
+            return;
+        }
+
+        // Add new files to our selection
+        selectedFiles = [...selectedFiles, ...newFiles.map(file => ({
+            originalFile: file,
+            formattedName: formatFileName(file.name)
+        }))];
+
+        // Clear any previous error messages
+        elements.errorContainer.textContent = '';
+
+        // Update the display
+        updateFileList(elements.fileList, elements);
+
+        // Reset file input
+        elements.fileInput.value = '';
+    });
 }
 
 async function uploadFilesToBackend(files, email) {
@@ -173,6 +197,16 @@ async function uploadFilesToBackend(files, email) {
         console.error('Upload Error:', error); 
         return { success: false, errorDetails: { code: 'UPLOAD_FAILED', error } };
     }
+}
+
+function formatFileName(fileName) {
+    // Get file extension
+    const ext = fileName.slice(fileName.lastIndexOf('.'));
+    // Get name without extension, remove special chars and spaces
+    const name = fileName.slice(0, fileName.lastIndexOf('.'))
+        .replace(/[^a-zA-Z0-9]/g, '_')  // Replace special chars with underscore
+        .toLowerCase();
+    return name + ext;
 }
 
 // Create UI elements
