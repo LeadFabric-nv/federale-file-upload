@@ -1,5 +1,5 @@
 MktoForms2.whenReady(function(form) {
-  const fieldsToHandle = ['fVcontactme', 'otherFieldId', 'anotherFieldId'];
+  const fieldsToHandle = ['fVcontactme'];
 
   function findFormRow(element) {
     let current = element;
