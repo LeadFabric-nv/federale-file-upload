@@ -1,4 +1,9 @@
 MktoForms2.whenReady(function(form) {
+  const captchaDisclaimer = document.querySelector('.mktoCaptchaDisclaimer');
+  if (captchaDisclaimer) {
+    captchaDisclaimer.style.display = "none";
+  }
+  
   const fieldsToHandle = ['fVcontactme'];
 
   function findFormRow(element) {
