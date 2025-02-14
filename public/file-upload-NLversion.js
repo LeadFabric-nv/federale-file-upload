@@ -87,9 +87,9 @@ MktoForms2.whenReady(function (form) {
                 }
 
                 if (response.success) {
-                    thankYouContainer.innerHTML = 'Merci pour votre soumission. Vos fichiers ont été téléchargés avec succès.';
+                    thankYouContainer.innerHTML = 'Dank u voor uw inzending. Uw bestanden zijn met success verzonden.';
                 } else {
-                    thankYouContainer.innerHTML = 'Merci pour votre soumission. Vos informations ont été envoyées, mais malheureusement, un problème est survenu lors du traitement de vos fichiers. Nous vous contacterons.';
+                    thankYouContainer.innerHTML = 'Dank u voor uw inzending. Uw informatie is verzonden maar helaas was er een probleem bij het verwerken van uw bestanden. Wij zullen contact met u opnemen.';
                 }
 
                 return true;
@@ -130,7 +130,7 @@ function initializeFileUpload(form, fieldset) {
 
         // Check if adding new files would exceed the limit
         if (selectedFiles.length + newFiles.length > 3) {
-            elements.errorContainer.textContent = 'Un maximum de 3 fichiers est autorisé.';
+            elements.errorContainer.textContent = 'Voeg maximum 3 bestanden toe.';
             elements.fileInput.value = '';
             return;
         }
@@ -142,7 +142,7 @@ function initializeFileUpload(form, fieldset) {
         });
     
         if (invalidFiles.length > 0) {
-            elements.errorContainer.textContent = `Type de fichier invalide. Types autorisés : ${ALLOWED_TYPES.join(', ')}`;
+            elements.errorContainer.textContent = `Ongeldig bestandstype. Toegestane types: ${ALLOWED_TYPES.join(', ')}`;
             elements.fileInput.value = '';
             return;
         }
@@ -151,7 +151,7 @@ function initializeFileUpload(form, fieldset) {
         const oversizedFiles = newFiles.filter(file => file.size > MAX_FILE_SIZE);
         
         if (oversizedFiles.length > 0) {
-            elements.errorContainer.textContent = `Fichier(s) trop grand(s). La taille maximale autorisée est de 10Mo par fichier.`;
+            elements.errorContainer.textContent = `Bestand(en) te groot. De maximale grootte is 10MB per bestand.`;
             elements.fileInput.value = '';
             return;
         }
@@ -165,7 +165,7 @@ function initializeFileUpload(form, fieldset) {
         });
 
         if (duplicateFiles.length > 0) {
-            elements.errorContainer.textContent = 'Ce fichier a déjà été ajouté au formulaire.';
+            elements.errorContainer.textContent = 'Dit bestand is reeds toegevoegd aan het formulier.';
             elements.fileInput.value = '';
             return;
         }
@@ -230,7 +230,7 @@ function createUploadInterface() {
     const uploadButton = document.createElement('button');
     uploadButton.type = 'button';
     uploadButton.className = 'upload-btn';
-    uploadButton.textContent = 'Ajouter des fichiers';
+    uploadButton.textContent = 'Bestanden toevoegen';
 
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
