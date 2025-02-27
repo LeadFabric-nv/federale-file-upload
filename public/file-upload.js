@@ -1,4 +1,3 @@
-
 // Keep track of selected files
 let selectedFiles = [];
 let fileUploadInitialized = false;
@@ -103,6 +102,18 @@ MktoForms2.whenReady(function (form) {
     // Add success handler to prevent redirect
     form.onSuccess(function(values, followUpUrl) {
         console.log("Form submitted successfully to Marketo");
+              form.getFormElem().hide();
+
+        let thankYouContainer = document.getElementById('form-thank-you');
+        if (!thankYouContainer) {
+            thankYouContainer = document.createElement('div');
+            thankYouContainer.id = 'form-thank-you';
+            form.getFormElem().get(0).parentNode.insertBefore(thankYouContainer, form.getFormElem().get(0).nextSibling);
+        }
+
+        if (!fileUploadInitialized || selectedFiles.length === 0) {
+            thankYouContainer.innerHTML = 'Merci pour votre soumission.';
+        }
         return false; // Prevent the redirect
     });
 

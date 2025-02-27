@@ -1,3 +1,132 @@
+<script src="//247-JVO-249.mktoweb.com/js/forms2/js/forms2.min.js"></script> <form id="mktoForm_1010"></form> <script>MktoForms2.loadForm("//247-JVO-249.mktoweb.com", "247-JVO-249", 1010);</script>
+   
+<script>
+MktoForms2.whenReady(function(form) {
+  const captchaDisclaimer = document.querySelector('.mktoCaptchaDisclaimer');
+  if (captchaDisclaimer) {
+    captchaDisclaimer.style.display = "none";
+  }
+  
+  const fieldsToHandle = ['fVcontactme'];
+  
+  function findFormRow(element) {
+    let current = element;
+    while (current && !current.classList.contains('mktoFormRow')) {
+      current = current.parentElement;
+    }
+    return current;
+  }
+  
+  function hasIncompleteRequiredFields() {
+    // Due to Marketo being finicky with it's onvalidate method, just check for visible error messages
+    const visibleErrors = form.getFormElem()
+      .find('.mktoError, .mktoErrorMsg')
+      .filter(function() {
+        return this.style.display !== 'none' && 
+               this.offsetParent !== null && 
+               window.getComputedStyle(this).visibility !== 'hidden';
+      });
+
+    const emptyRequiredFields = form.getFormElem()
+      .find('.mktoField.mktoRequired, .mktoRadio.mktoRequired, .mktoCheckbox.mktoRequired')
+      .filter(function() {
+        // Exclude the contact checkbox itself
+        if (fieldsToHandle.includes(this.id)) {
+          return false;
+        }
+        
+        if (this.type === 'radio') {
+          const name = this.name;
+          return !form.getFormElem().find(`input[name="${name}"]:checked`).length;
+        }
+        
+        if (this.type === 'checkbox') {
+          return !this.checked;
+        }
+        
+        return !this.value?.trim();
+      });
+
+    return visibleErrors.length > 0 || emptyRequiredFields.length > 0;
+  }
+  
+  function toggleFieldRowsVisibility() {
+    fieldsToHandle.forEach(fieldId => {
+      const field = form.getFormElem().find(`#${fieldId}`)[0];
+      if (!field) return;
+      
+      const fieldRow = findFormRow(field);
+      if (!fieldRow) return;
+      
+      const shouldShow = hasIncompleteRequiredFields();
+      
+      if (field.type === 'checkbox') {
+        fieldRow.style.display = shouldShow ? 'block' : 'none';
+        
+        if (!shouldShow) {
+          field.checked = false;
+        }
+      }
+    });
+  }
+  
+  function attachFieldListeners(field) {
+    if (fieldsToHandle.includes(field.id)) return;
+    
+    field.removeEventListener('blur', handleFieldBlur);
+    field.addEventListener('blur', handleFieldBlur);
+    
+    field.removeEventListener('change', handleFieldBlur);
+    field.addEventListener('change', handleFieldBlur);
+    
+    field.removeEventListener('input', handleFieldBlur);
+    field.addEventListener('input', handleFieldBlur);
+  }
+  
+  function handleFieldBlur(event) {
+    setTimeout(toggleFieldRowsVisibility, 0);
+  }
+  
+  function handleNewFields(formRow) {
+    formRow.querySelectorAll('input, select, textarea').forEach(attachFieldListeners);
+  }
+  
+  function initializeFormHandlers() {
+    toggleFieldRowsVisibility();
+    
+    setTimeout(toggleFieldRowsVisibility, 500);
+    
+    form.getFormElem().find('input, select, textarea').each(function() {
+      attachFieldListeners(this);
+    });
+    
+    const formElement = form.getFormElem()[0];
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === 1 && node.classList && !node.classList.contains('mktoPlaceholder')) {
+            const formRow = findFormRow(node);
+            if (formRow) handleNewFields(formRow);
+          }
+        });
+      });
+      
+      setTimeout(toggleFieldRowsVisibility, 0);
+    });
+    
+    observer.observe(formElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+  }
+  
+  initializeFormHandlers();
+});
+</script>  
+  
+<script>
 
 // Keep track of selected files
 let selectedFiles = [];
@@ -87,9 +216,9 @@ MktoForms2.whenReady(function (form) {
                 }
 
                 if (response.success) {
-                    thankYouContainer.innerHTML = 'Dank u voor uw inzending. Uw bestanden zijn met success verzonden.';
+                    thankYouContainer.innerHTML = 'Merci pour votre soumission. Vos fichiers ont été téléchargés avec succès.';
                 } else {
-                    thankYouContainer.innerHTML = 'Dank u voor uw inzending. Uw informatie is verzonden maar helaas was er een probleem bij het verwerken van uw bestanden. Wij zullen contact met u opnemen.';
+                    thankYouContainer.innerHTML = 'Merci pour votre soumission. Vos informations ont été envoyées, mais malheureusement, un problème est survenu lors du traitement de vos fichiers. Nous vous contacterons.';
                 }
 
                 return true;
@@ -103,7 +232,7 @@ MktoForms2.whenReady(function (form) {
     // Add success handler to prevent redirect
     form.onSuccess(function(values, followUpUrl) {
         console.log("Form submitted successfully to Marketo");
-        form.getFormElem().hide();
+              form.getFormElem().hide();
 
         let thankYouContainer = document.getElementById('form-thank-you');
         if (!thankYouContainer) {
@@ -113,7 +242,7 @@ MktoForms2.whenReady(function (form) {
         }
 
         if (!fileUploadInitialized || selectedFiles.length === 0) {
-            thankYouContainer.innerHTML = 'Bedankt voor uw inzending.';
+            thankYouContainer.innerHTML = 'Merci pour votre soumission.';
         }
         return false; // Prevent the redirect
     });
@@ -142,7 +271,7 @@ function initializeFileUpload(form, fieldset) {
 
         // Check if adding new files would exceed the limit
         if (selectedFiles.length + newFiles.length > 3) {
-            elements.errorContainer.textContent = 'Voeg maximum 3 bestanden toe.';
+            elements.errorContainer.textContent = 'Un maximum de 3 fichiers est autorisé.';
             elements.fileInput.value = '';
             return;
         }
@@ -154,7 +283,7 @@ function initializeFileUpload(form, fieldset) {
         });
     
         if (invalidFiles.length > 0) {
-            elements.errorContainer.textContent = `Ongeldig bestandstype. Toegestane types: ${ALLOWED_TYPES.join(', ')}`;
+            elements.errorContainer.textContent = `Type de fichier invalide. Types autorisés : ${ALLOWED_TYPES.join(', ')}`;
             elements.fileInput.value = '';
             return;
         }
@@ -163,7 +292,7 @@ function initializeFileUpload(form, fieldset) {
         const oversizedFiles = newFiles.filter(file => file.size > MAX_FILE_SIZE);
         
         if (oversizedFiles.length > 0) {
-            elements.errorContainer.textContent = `Bestand(en) te groot. De maximale grootte is 10MB per bestand.`;
+            elements.errorContainer.textContent = `Fichier(s) trop grand(s). La taille maximale autorisée est de 10Mo par fichier.`;
             elements.fileInput.value = '';
             return;
         }
@@ -177,7 +306,7 @@ function initializeFileUpload(form, fieldset) {
         });
 
         if (duplicateFiles.length > 0) {
-            elements.errorContainer.textContent = 'Dit bestand is reeds toegevoegd aan het formulier.';
+            elements.errorContainer.textContent = 'Ce fichier a déjà été ajouté au formulaire.';
             elements.fileInput.value = '';
             return;
         }
@@ -242,7 +371,7 @@ function createUploadInterface() {
     const uploadButton = document.createElement('button');
     uploadButton.type = 'button';
     uploadButton.className = 'upload-btn';
-    uploadButton.textContent = 'Bestanden toevoegen';
+    uploadButton.textContent = 'Ajouter des fichiers';
 
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -304,3 +433,4 @@ function updateFileList(fileListElement, elements) {
         fileListElement.appendChild(fileItem);
     });
 }
+</script>
