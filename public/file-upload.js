@@ -39,12 +39,19 @@ MktoForms2.whenReady(function (form) {
     form.onSubmit(function() {
         console.log("Form onSubmit triggered");
 
-        // Set the upload datetime
-        form.setValues({ 'fVuploaddate': new Date().toISOString() });
+        if (!fileUploadInitialized) {
+            console.log("File upload not initialized, submitting form normally");
+            return;
+        }
 
-        // If no file upload is initialized or no files are selected, submit the form normally
-        if (!fileUploadInitialized || selectedFiles.length === 0) {
-            console.log("No files uploaded, proceeding with normal form submission.");
+        // Set the upload datetime
+        form.setValues({
+            'fVuploaddate': new Date().toISOString();
+        });
+
+        // If no files, let form submit normally
+        if (selectedFiles.length === 0) {
+            console.log("no files, returning true");
             return;
         }
 
