@@ -36,9 +36,9 @@ async function uploadFilesToMarketo(tokenResponse, files) {
         });
 
         try {
-            console.log('Marketo Upload Endpoint:', `${process.env.MARKETO_HOST}/rest/asset/v1/files.json?folder=99`);
+            console.log('Marketo Upload Endpoint:', `${process.env.MARKETO_HOST}/rest/asset/v1/files.json?folder=3175`);
 
-            const marketoUploadResponse = await fetch(`${process.env.MARKETO_HOST}/rest/asset/v1/files.json?folder=99`, {
+            const marketoUploadResponse = await fetch(`${process.env.MARKETO_HOST}/rest/asset/v1/files.json?folder=3175`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${tokenResponse.data.access_token}`,
