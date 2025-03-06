@@ -1,4 +1,3 @@
-
 // Keep track of selected files
 let selectedFiles = [];
 let fileUploadInitialized = false;
@@ -14,36 +13,29 @@ MktoForms2.whenReady(function (form) {
     // Create an observer instance
     const observer = new MutationObserver((mutations) => {
         mutations.forEach(mutation => {
-            // Look for added nodes
             mutation.addedNodes.forEach(node => {
-                // Check if it's an element node and a fieldset
-                if (node.nodeType === 1 && node.nodeName === 'FIELDSET') {
-                    // Check if this is our target fieldset
-                    if (node.textContent.toLowerCase().includes('file upload')) {
-                        console.log('File upload fieldset added to DOM');
-                        initializeFileUpload(form, node);
-                        fileUploadInitialized = true;  // Set flag when initialized
-                    }
+                if (node.nodeType === 1 && node.nodeName === 'FIELDSET' && node.textContent.toLowerCase().includes('file upload')) {
+                    console.log('File upload fieldset added to DOM');
+                    initializeFileUpload(form, node);
+                    fileUploadInitialized = true;
                 }
             });
         });
     });
 
-    // Configure the observer to only watch for added nodes
-    const config = {
-        childList: true,
-        subtree: true
-    };
-
     // Start observing the form
-    observer.observe(form.getFormElem().get(0), config);
+    observer.observe(form.getFormElem().get(0), { childList: true, subtree: true });
 
-    // Check form validation
-    form.onValidate(function(isValid) {
-        console.log("Form validation status:", isValid);
-    });
+    // Create and insert the thank you message container
+    let thankYouContainer = document.getElementById('form-thank-you');
+    if (!thankYouContainer) {
+        thankYouContainer = document.createElement('div');
+        thankYouContainer.id = 'form-thank-you';
+        thankYouContainer.style.display = 'none'; // Hidden by default
+        form.getFormElem().get(0).parentNode.insertBefore(thankYouContainer, form.getFormElem().get(0).nextSibling);
+    }
 
-   // Handle form submission
+    // Handle form submission
     form.onSubmit(function() {
         console.log("Form onSubmit triggered");
 
@@ -52,45 +44,32 @@ MktoForms2.whenReady(function (form) {
             return;
         }
 
-        // Set the upload datetime
-        const now = new Date().toISOString();
+        // Set the upload dateTime
         form.setValues({
-            'fVuploaddate': now
+            'fVuploaddate': new Date().toISOString();
         });
-        
+
         // If no files, let form submit normally
         if (selectedFiles.length === 0) {
             console.log("no files, returning true");
             return;
         }
-
+      
         // Get email from form
         const email = form.getValues().Email;
 
-        console.log(email);
-        console.log(form.getValues().fVuploaddate);
-
-        // Return the promise for file upload case
         return uploadFilesToBackend(selectedFiles, email)
             .then(response => {
                 console.log("File upload response:", response);
-                
-                // Hide the form after successful form submission
-                form.getFormElem().hide();
-                
-                // Create thank you message container
-                let thankYouContainer = document.getElementById('form-thank-you');
-                if (!thankYouContainer) {
-                    thankYouContainer = document.createElement('div');
-                    thankYouContainer.id = 'form-thank-you';
-                    form.getFormElem().get(0).parentNode.insertBefore(thankYouContainer, form.getFormElem().get(0).nextSibling);
-                }
 
-                if (response.success) {
-                    thankYouContainer.innerHTML = 'Dank u voor uw inzending. Uw bestanden zijn met success verzonden.';
-                } else {
-                    thankYouContainer.innerHTML = 'Dank u voor uw inzending. Uw informatie is verzonden maar helaas was er een probleem bij het verwerken van uw bestanden. Wij zullen contact met u opnemen.';
-                }
+                // Hide form and show thank you message
+                form.getFormElem().hide();
+                thankYouContainer.style.display = 'block';
+
+                // Display appropriate message
+                thankYouContainer.innerHTML = response.success 
+                    ? 'Bedankt voor uw inzending. Uw bestanden zijn succesvol geüpload.'
+                    : 'Bedankt voor uw inzending. Uw gegevens zijn verzonden, maar helaas is er een probleem opgetreden bij het verwerken van uw bestanden. We nemen contact met u op.';
 
                 return true;
             })
@@ -100,19 +79,24 @@ MktoForms2.whenReady(function (form) {
             });
     });
 
-    // Add success handler to prevent redirect
-    form.onSuccess(function(values, followUpUrl) {
+    // Handle form success
+    form.onSuccess(function() {
         console.log("Form submitted successfully to Marketo");
-        return false; // Prevent the redirect
+
+        // Hide form and show thank you message with default message
+        form.getFormElem().hide();
+        thankYouContainer.style.display = 'block';
+        if (!thankYouContainer.innerHTML) {
+            thankYouContainer.innerHTML = 'Bedankt voor uw inzending.';
+        }
+
+        return false; // Prevent redirect
     });
 
 });
 
 function initializeFileUpload(form, fieldset) {
-    // Check if we've already initialized on this fieldset
-    if (fieldset.querySelector('.file-upload-container')) {
-        return;
-    }
+    if (fieldset.querySelector('.file-upload-container')) return;
 
     console.log('Initializing file upload interface');
     
@@ -120,69 +104,51 @@ function initializeFileUpload(form, fieldset) {
     const elements = createUploadInterface();
     fieldset.appendChild(elements.container);
 
-    // Handle file selection
-    elements.uploadButton.addEventListener('click', () => {
-        elements.fileInput.click();
-    });
+    elements.uploadButton.addEventListener('click', () => elements.fileInput.click());
 
     elements.fileInput.addEventListener('change', (event) => {
         const newFiles = Array.from(event.target.files);
 
-        // Check if adding new files would exceed the limit
         if (selectedFiles.length + newFiles.length > 3) {
-            elements.errorContainer.textContent = 'Voeg maximum 3 bestanden toe.';
+            elements.errorContainer.textContent = 'Een maximaal aantal van 3 bestanden is toegestaan.';
             elements.fileInput.value = '';
             return;
         }
 
-        // File type validation
-        const invalidFiles = newFiles.filter(file => {
-            const extension = '.' + file.name.split('.').pop().toLowerCase();
-            return !ALLOWED_TYPES.includes(extension);
-        });
-    
+        // Validate file type and size
+        const invalidFiles = newFiles.filter(file => !ALLOWED_TYPES.includes('.' + file.name.split('.').pop().toLowerCase()));
+        const oversizedFiles = newFiles.filter(file => file.size > MAX_FILE_SIZE);
+
         if (invalidFiles.length > 0) {
             elements.errorContainer.textContent = `Ongeldig bestandstype. Toegestane types: ${ALLOWED_TYPES.join(', ')}`;
             elements.fileInput.value = '';
             return;
         }
 
-        // File size validation
-        const oversizedFiles = newFiles.filter(file => file.size > MAX_FILE_SIZE);
-        
         if (oversizedFiles.length > 0) {
-            elements.errorContainer.textContent = `Bestand(en) te groot. De maximale grootte is 10MB per bestand.`;
+            elements.errorContainer.textContent = 'Bestand(en) te groot. Maximale bestandsgrootte is 10 MB per bestand.';
             elements.fileInput.value = '';
             return;
         }
 
-        // Check for duplicate file names
-        const duplicateFiles = newFiles.filter(newFile => {
-            const newFormattedName = formatFileName(newFile.name);
-            return selectedFiles.some(existingFile => 
-                existingFile.formattedName.toLowerCase() === newFormattedName.toLowerCase()
-            );
-        });
+        // Check for duplicates
+        const duplicateFiles = newFiles.filter(newFile => 
+            selectedFiles.some(existingFile => existingFile.formattedName.toLowerCase() === formatFileName(newFile.name).toLowerCase())
+        );
 
         if (duplicateFiles.length > 0) {
-            elements.errorContainer.textContent = 'Dit bestand is reeds toegevoegd aan het formulier.';
+            elements.errorContainer.textContent = 'Dit bestand is al aan het formulier toegevoegd.';
             elements.fileInput.value = '';
             return;
         }
 
-        // Add new files to our selection
         selectedFiles = [...selectedFiles, ...newFiles.map(file => ({
             originalFile: file,
             formattedName: formatFileName(file.name)
         }))];
 
-        // Clear any previous error messages
         elements.errorContainer.textContent = '';
-
-        // Update the display
         updateFileList(elements.fileList, elements);
-
-        // Reset file input
         elements.fileInput.value = '';
     });
 }
@@ -194,32 +160,19 @@ async function uploadFilesToBackend(files, email) {
             formData.append('files', file.originalFile);
             formData.append('names', file.formattedName);
         });
-
-        // Add email to form data
         formData.append('email', email);
 
-        const response = await fetch(`${API_URL}/api/upload`, { 
-            method: 'POST', 
-            body: formData
-        });
-
-        const result = await response.json();
-        console.log('Upload Result:', result); 
-        return result;
+        const response = await fetch(`${API_URL}/api/upload`, { method: 'POST', body: formData });
+        return await response.json();
     } catch (error) {
-        console.error('Upload Error:', error); 
+        console.error('Upload Error:', error);
         return { success: false, errorDetails: { code: 'UPLOAD_FAILED', error } };
     }
 }
 
 function formatFileName(fileName) {
-    // Get file extension
     const ext = fileName.slice(fileName.lastIndexOf('.'));
-    // Get name without extension, remove special chars and spaces
-    const name = fileName.slice(0, fileName.lastIndexOf('.'))
-        .replace(/[^a-zA-Z0-9]/g, '_')  // Replace special chars with underscore
-        .toLowerCase();
-    return name + ext;
+    return fileName.slice(0, fileName.lastIndexOf('.')).replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() + ext;
 }
 
 // Create UI elements
@@ -244,39 +197,25 @@ function createUploadInterface() {
     const errorContainer = document.createElement('div');
     errorContainer.className = 'error-container';
 
-    const messageContainer = document.createElement('div');
-    messageContainer.className = 'message-container';
-    messageContainer.style.display = 'none';
-
     container.appendChild(uploadButton);
     container.appendChild(fileInput);
     container.appendChild(fileList);
     container.appendChild(errorContainer);
-    container.appendChild(messageContainer);
 
-    return {
-        container,
-        uploadButton,
-        fileInput,
-        fileList,
-        errorContainer,
-        messageContainer 
-    };
+    return { container, uploadButton, fileInput, fileList, errorContainer };
 }
 
-// Function to update file list display
+// Update file list display
 function updateFileList(fileListElement, elements) {
     fileListElement.innerHTML = '';
     selectedFiles.forEach((file, index) => {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item';
 
-        // Add file name
         const fileName = document.createElement('span');
-        fileName.textContent = `${file.originalFile.name} → ${file.formattedName}`;
+        fileName.textContent = file.originalFile.name;
         fileItem.appendChild(fileName);
 
-        // Add remove button
         const removeButton = document.createElement('button');
         removeButton.type = 'button';
         removeButton.className = 'remove-file';
